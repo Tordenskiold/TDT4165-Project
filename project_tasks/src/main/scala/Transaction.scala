@@ -12,7 +12,7 @@ class TransactionQueue {
   // TODO
   // project task 1.1
   // Add datastructure to contain the transactions
-  var transactionQueue = mutable.Queue[Transaction]()
+  val transactionQueue = mutable.Queue[Transaction]()
 
   // Remove and return the first element from the queue
   def pop: Transaction = transactionQueue.dequeue
@@ -35,25 +35,37 @@ class Transaction(val transactionsQueue: TransactionQueue,
                   val from: Account,
                   val to: Account,
                   val amount: Double,
-                  val allowedAttemps: Int)
+                  val allowedAttempts: Int)
     extends Runnable {
 
   var status: TransactionStatus.Value = TransactionStatus.PENDING
-  var attempt                         = 0
+
+  var attempt = 0
 
   override def run: Unit = {
 
-    def doTransaction() = {
+    def doTransaction(): Either[Double, String] = {
       // TODO - project task 3
       // Extend this method to satisfy requirements.
-      from.withdraw(amount)
+      val withdrawStatus = from.withdraw(amount)
+      if (withdrawStatus.isRight) return withdrawStatus
       to.deposit(amount)
     }
 
     // TODO - project task 3
     // make the code below thread safe
     if (status == TransactionStatus.PENDING) {
-      doTransaction
+      this.synchronized {
+        val transactionOut = doTransaction
+
+        if (transactionOut.isLeft) status = TransactionStatus.SUCCESS
+        else {
+          if (attempt < allowedAttempts) {
+            attempt += 1
+            status = TransactionStatus.PENDING
+          } else status = TransactionStatus.FAILED
+        }
+      }
       Thread.sleep(50) // you might want this to make more room for
       // new transactions to be added to the queue
     }

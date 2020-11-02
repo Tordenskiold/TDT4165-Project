@@ -21,6 +21,7 @@ class Account(val bank: Bank, initialBalance: Double) {
         }
       }
     }
+
   def deposit(amount: Double): Either[Double, String] =
     amount match {
       case i if i < 0.0 => Right(s"Can't deposit negative amount [$amount]")
@@ -32,6 +33,7 @@ class Account(val bank: Bank, initialBalance: Double) {
         }
       }
     }
+
   def getBalanceAmount: Double = balance.amount
 
   def transferTo(account: Account, amount: Double) =
