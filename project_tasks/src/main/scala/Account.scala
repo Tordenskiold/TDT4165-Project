@@ -11,19 +11,19 @@ class Account(val bank: Bank, initialBalance: Double) {
   // for project task 1.3: change return type and update function bodies
   def withdraw(amount: Double): Either[Double, String] =
     amount match {
-      case i if i < 0.0              => Right("Can't widthdraw negative amount")
-      case i if i > getBalanceAmount => Right("Can't withdraw more than balance")
+      case i if i < 0.0              => Right(s"Can't withdraw negative amount [$amount]")
+      case i if i > getBalanceAmount => Right(s"Can't withdraw more than balance [$amount]")
       case _ => {
         this.synchronized {
           val newBalanceAmount = getBalanceAmount - amount
           balance.amount = newBalanceAmount
-          Left(getBalanceAmount + amount)
+          Left(newBalanceAmount)
         }
       }
     }
   def deposit(amount: Double): Either[Double, String] =
     amount match {
-      case i if i < 0.0 => Right("Can't deposit negative amount.")
+      case i if i < 0.0 => Right(s"Can't deposit negative amount [$amount]")
       case _ => {
         this.synchronized {
           val newBalanceAmount = getBalanceAmount + amount
