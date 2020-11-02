@@ -7,10 +7,10 @@ class Bank(val allowedAttempts: Integer = 3) {
     val transaction =
       new Transaction(transactionsQueue, processedTransactions, from, to, amount, allowedAttempts)
     transactionsQueue.push(transaction)
-    processTransactions
-    // val th = new Thread(() => processTransactions)
-    // th.start()
-
+    // processTransactions
+    val th = new Thread(() => processTransactions)
+    th.start()
+    th.join()
   }
   // TODO
   // project task 2
@@ -18,6 +18,7 @@ class Bank(val allowedAttempts: Integer = 3) {
   // spawn a thread that calls processTransactions
 
   private def processTransactions: Unit = {
+    if (transactionsQueue.isEmpty) return
     val transaction = transactionsQueue.pop
 
     val th = new Thread(transaction)
@@ -25,9 +26,10 @@ class Bank(val allowedAttempts: Integer = 3) {
     transaction.status match {
       case TransactionStatus.PENDING => {
         transactionsQueue.push(transaction)
-        processTransactions
+        processTransactions()
       }
-      case _ => processedTransactions.push(transaction)
+      case TransactionStatus.SUCCESS | TransactionStatus.FAILED =>
+        processedTransactions.push(transaction)
     }
   }
   // TODO

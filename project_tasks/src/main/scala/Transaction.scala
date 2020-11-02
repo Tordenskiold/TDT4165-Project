@@ -44,7 +44,7 @@ class Transaction(val transactionsQueue: TransactionQueue,
 
   override def run: Unit = {
 
-    def doTransaction(): Either[Double, String] = {
+    def doTransaction(): Either[Double, AccountError] = {
       // TODO - project task 3
       // Extend this method to satisfy requirements.
       val withdrawStatus = from.withdraw(amount)
@@ -54,21 +54,21 @@ class Transaction(val transactionsQueue: TransactionQueue,
 
     // TODO - project task 3
     // make the code below thread safe
-    if (status == TransactionStatus.PENDING) {
-      this.synchronized {
-        val transactionOut = doTransaction
-
-        if (transactionOut.isLeft) status = TransactionStatus.SUCCESS
-        else {
-          if (attempt < allowedAttempts) {
-            attempt += 1
-            status = TransactionStatus.PENDING
-          } else status = TransactionStatus.FAILED
+    this.synchronized {
+      if (status == TransactionStatus.PENDING) {
+        val transactionOut: Either[Double, AccountError] = doTransaction()
+        attempt += 1
+        status = transactionOut match {
+          case Left(_)                  => TransactionStatus.SUCCESS
+          case Right(NegativeAmount(_)) => TransactionStatus.FAILED
+          case Right(InsufficientFunds(_)) => {
+            if (attempt < allowedAttempts) TransactionStatus.PENDING
+            else TransactionStatus.FAILED
+          }
         }
       }
-      Thread.sleep(50) // you might want this to make more room for
-      // new transactions to be added to the queue
     }
-
+    Thread.sleep(50) // you might want this to make more room for
+    // new transactions to be added to the queue
   }
 }
