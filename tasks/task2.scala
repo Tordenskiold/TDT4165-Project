@@ -1,7 +1,7 @@
 object Hello extends App {
 	// Task 2a
 	def embedInThread(inputFunction: () => Unit): Thread = {
-		return new Thread(new Runnable {
+		new Thread(new Runnable {
 			def run() {
 				inputFunction()
 			}
