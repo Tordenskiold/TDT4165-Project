@@ -1,43 +1,42 @@
+import TransactionStatus._
+
 class Bank(val allowedAttempts: Integer = 3) {
 
   private val transactionsQueue: TransactionQueue     = new TransactionQueue()
   private val processedTransactions: TransactionQueue = new TransactionQueue()
 
-  def addTransactionToQueue(from: Account, to: Account, amount: Double): Unit = {
-    val transaction =
-      new Transaction(transactionsQueue, processedTransactions, from, to, amount, allowedAttempts)
-    transactionsQueue.push(transaction)
-    // processTransactions
-    val th = new Thread(() => processTransactions)
-    th.start()
-    th.join()
-  }
   // TODO
   // project task 2
   // create a new transaction object and put it in the queue
   // spawn a thread that calls processTransactions
-
-  private def processTransactions: Unit = {
-    if (transactionsQueue.isEmpty) return
-    val transaction = transactionsQueue.pop
-
-    val th = new Thread(transaction)
-    th.start()
-    transaction.status match {
-      case TransactionStatus.PENDING => {
-        transactionsQueue.push(transaction)
-        processTransactions()
-      }
-      case TransactionStatus.SUCCESS | TransactionStatus.FAILED =>
-        processedTransactions.push(transaction)
+  def addTransactionToQueue(from: Account, to: Account, amount: Double): Unit = {
+    transactionsQueue.push {
+      new Transaction(transactionsQueue, processedTransactions, from, to, amount, allowedAttempts)
     }
+    val t = new Thread(() => processTransactions)
+    t.start()
+    t.join()
   }
+
   // TODO
   // project task 2
   // Function that pops a transaction from the queue
   // and spawns a thread to execute the transaction.
   // Finally do the appropriate thing, depending on whether
   // the transaction succeeded or not
+  private def processTransactions: Unit =
+    while (!transactionsQueue.isEmpty) {
+      val transaction = transactionsQueue.pop
+
+      val th = new Thread(transaction)
+      th.start()
+      th.join()
+
+      transaction.status match {
+        case FAILED | SUCCESS => processedTransactions.push(transaction)
+        case PENDING          => transactionsQueue.push(transaction)
+      }
+    }
 
   def addAccount(initialBalance: Double): Account =
     new Account(this, initialBalance)

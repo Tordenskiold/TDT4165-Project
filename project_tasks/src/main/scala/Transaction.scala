@@ -1,7 +1,4 @@
-import exceptions._
-
 import scala.collection.mutable
-import scala.collection.immutable
 
 object TransactionStatus extends Enumeration {
   val SUCCESS, PENDING, FAILED = Value
@@ -12,22 +9,22 @@ class TransactionQueue {
   // TODO
   // project task 1.1
   // Add datastructure to contain the transactions
-  val transactionQueue = mutable.Queue[Transaction]()
+  private val transactionQueue = mutable.Queue[Transaction]()
 
   // Remove and return the first element from the queue
-  def pop: Transaction = transactionQueue.dequeue
+  def pop: Transaction = this synchronized transactionQueue.dequeue
 
   // Return whether the queue is empty
-  def isEmpty: Boolean = transactionQueue.isEmpty
+  def isEmpty: Boolean = this synchronized transactionQueue.isEmpty
 
   // Add new element to the back of the queue
-  def push(t: Transaction): Unit = transactionQueue.enqueue(t)
+  def push(t: Transaction): Unit = this synchronized transactionQueue.enqueue(t)
 
   // Return the first element from the queue without removing it
-  def peek: Transaction = transactionQueue.last
+  def peek: Transaction = this synchronized transactionQueue.last
 
   // Return an iterator to allow you to iterate over the queue
-  def iterator: Iterator[Transaction] = transactionQueue.iterator
+  def iterator: Iterator[Transaction] = this synchronized transactionQueue.iterator
 }
 
 class Transaction(val transactionsQueue: TransactionQueue,
@@ -56,13 +53,12 @@ class Transaction(val transactionsQueue: TransactionQueue,
     // make the code below thread safe
     this.synchronized {
       if (status == TransactionStatus.PENDING) {
-        val transactionOut: Either[Double, AccountError] = doTransaction()
-        attempt += 1
-        status = transactionOut match {
-          case Left(_)                  => TransactionStatus.SUCCESS
-          case Right(NegativeAmount(_)) => TransactionStatus.FAILED
-          case Right(InsufficientFunds(_)) => {
-            if (attempt < allowedAttempts) TransactionStatus.PENDING
+        status = doTransaction() match {
+          case Left(_)              => TransactionStatus.SUCCESS
+          case Right(IllegalAmount) => TransactionStatus.FAILED
+          case Right(NoSufficientFunds) => {
+            attempt += 1
+            if (attempt < this.allowedAttempts) TransactionStatus.PENDING
             else TransactionStatus.FAILED
           }
         }
