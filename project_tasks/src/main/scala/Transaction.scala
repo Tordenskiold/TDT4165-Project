@@ -32,8 +32,7 @@ class Transaction(val transactionsQueue: TransactionQueue,
                   val from: Account,
                   val to: Account,
                   val amount: Double,
-                  val allowedAttempts: Int)
-    extends Runnable {
+                  val allowedAttempts: Int) extends Runnable {
 
   var status: TransactionStatus.Value = TransactionStatus.PENDING
 
@@ -52,13 +51,17 @@ class Transaction(val transactionsQueue: TransactionQueue,
     // TODO - project task 3
     // make the code below thread safe
     if (status == TransactionStatus.PENDING) {
-      status = doTransaction() match {
-        case Left(_)                  => TransactionStatus.SUCCESS
-        case Right(IllegalAmount)     => TransactionStatus.FAILED
-        case Right(NoSufficientFunds) => {
-          attempt += 1
-          if (attempt >= this.allowedAttempts) TransactionStatus.FAILED
-          else TransactionStatus.PENDING
+      from.synchronized {
+        to.synchronized {
+          status = doTransaction() match {
+            case Left(_)                  => TransactionStatus.SUCCESS
+            case Right(IllegalAmount)     => TransactionStatus.FAILED
+            case Right(NoSufficientFunds) => {
+              attempt += 1
+              if (attempt >= allowedAttempts) TransactionStatus.FAILED
+              else TransactionStatus.PENDING
+            }
+          }
         }
       }
     }
