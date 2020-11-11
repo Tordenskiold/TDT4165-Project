@@ -21,7 +21,7 @@ class TransactionQueue {
   def push(t: Transaction): Unit = this synchronized transactionQueue.enqueue(t)
 
   // Return the first element from the queue without removing it
-  def peek: Transaction = this synchronized transactionQueue.last
+  def peek: Transaction = this synchronized transactionQueue.front
 
   // Return an iterator to allow you to iterate over the queue
   def iterator: Iterator[Transaction] = this synchronized transactionQueue.iterator
@@ -51,16 +51,14 @@ class Transaction(val transactionsQueue: TransactionQueue,
 
     // TODO - project task 3
     // make the code below thread safe
-    this.synchronized {
-      if (status == TransactionStatus.PENDING) {
-        status = doTransaction() match {
-          case Left(_)              => TransactionStatus.SUCCESS
-          case Right(IllegalAmount) => TransactionStatus.FAILED
-          case Right(NoSufficientFunds) => {
-            attempt += 1
-            if (attempt < this.allowedAttempts) TransactionStatus.PENDING
-            else TransactionStatus.FAILED
-          }
+    if (status == TransactionStatus.PENDING) {
+      status = doTransaction() match {
+        case Left(_)                  => TransactionStatus.SUCCESS
+        case Right(IllegalAmount)     => TransactionStatus.FAILED
+        case Right(NoSufficientFunds) => {
+          attempt += 1
+          if (attempt >= this.allowedAttempts) TransactionStatus.FAILED
+          else TransactionStatus.PENDING
         }
       }
     }

@@ -13,9 +13,9 @@ class Bank(val allowedAttempts: Integer = 3) {
     transactionsQueue.push {
       new Transaction(transactionsQueue, processedTransactions, from, to, amount, allowedAttempts)
     }
-    val t = new Thread(() => processTransactions)
-    t.start()
-    t.join()
+    Main.thread {
+      processTransactions
+    }
   }
 
   // TODO
@@ -24,19 +24,20 @@ class Bank(val allowedAttempts: Integer = 3) {
   // and spawns a thread to execute the transaction.
   // Finally do the appropriate thing, depending on whether
   // the transaction succeeded or not
-  private def processTransactions: Unit =
-    while (!transactionsQueue.isEmpty) {
-      val transaction = transactionsQueue.pop
+  private def processTransactions: Unit = {
+    val transaction = transactionsQueue.pop
 
-      val th = new Thread(transaction)
-      th.start()
-      th.join()
-
-      transaction.status match {
-        case FAILED | SUCCESS => processedTransactions.push(transaction)
-        case PENDING          => transactionsQueue.push(transaction)
+    val th = new Thread(transaction)
+    th.start
+    th.join
+    transaction.status match {
+      case FAILED | SUCCESS => processedTransactions.push(transaction)
+      case PENDING => {
+        transactionsQueue.push(transaction)
+        processTransactions
       }
     }
+  }
 
   def addAccount(initialBalance: Double): Account =
     new Account(this, initialBalance)
